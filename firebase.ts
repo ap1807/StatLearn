@@ -1,10 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { initializeFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, getDocFromServer, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from './firebase-applet-config.json';
 
 // Initialize Firebase SDK
 const app = initializeApp(firebaseConfig);
+
+// Set log level to error to suppress noisy idle stream warnings
+setLogLevel('error');
+
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
