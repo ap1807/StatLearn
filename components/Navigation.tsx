@@ -23,7 +23,7 @@ export function Navigation() {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const navLinks = [
-    { name: 'Dashboard', href: '/' },
+    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Analyze Scenario', href: '/analyze' },
     { name: 'Insights', href: '/insights' },
     { name: 'Compare', href: '/compare' },
@@ -176,11 +176,20 @@ export function Navigation() {
                         <p className="text-xs font-bold text-on-surface truncate">{user.displayName}</p>
                         <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>
                       </div>
-                      <div className="p-2">
+                      <div className="p-2 flex flex-col gap-1">
+                        <Link 
+                          href="/profile"
+                          onClick={() => setShowUserMenu(false)}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2"
+                        >
+                          <User className="w-3.5 h-3.5 text-primary" />
+                          My Profile
+                        </Link>
                         <button 
                           onClick={() => { logout(); setShowUserMenu(false); }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-error hover:bg-error/5 transition-colors"
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-error hover:bg-error/5 transition-colors flex items-center gap-2"
                         >
+                          <Trash2 className="w-3.5 h-3.5" />
                           Sign Out
                         </button>
                       </div>

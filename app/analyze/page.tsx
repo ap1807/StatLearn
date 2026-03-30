@@ -1,21 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Activity, AlertTriangle, Frown, Lightbulb, ShieldCheck, TrendingDown, TrendingUp, Zap, X, ShieldAlert, Sparkles } from 'lucide-react';
+import { Activity, AlertTriangle, Frown, Lightbulb, ShieldCheck, TrendingDown, TrendingUp, Zap, X, ShieldAlert, Sparkles, ChevronLeft } from 'lucide-react';
 import { StatisticalEngine, type AnalysisResult } from '@/lib/engine';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '@/components/NotificationProvider';
 import { useAuth } from '@/components/FirebaseProvider';
 import { db, handleFirestoreError, OperationType } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { GoogleGenAI } from "@google/genai";
 import { AnalyzeLiveFeed } from '@/components/AnalyzeLiveFeed';
 import { Bookmark, CheckCircle2, Save } from 'lucide-react';
+import Link from 'next/link';
 
-export default function AnalyzeScenario() {
+function AnalyzeContent() {
+  const searchParams = useSearchParams();
+  const analysisId = searchParams.get('id');
   const { addNotification } = useNotifications();
   const { user } = useAuth();
+  
   const [distance, setDistance] = useState<number>(1200);
   const [classType, setClassType] = useState<string>('Economy');
   const [depDelay, setDepDelay] = useState<number>(0);
@@ -32,6 +37,42 @@ export default function AnalyzeScenario() {
   const [showHighRiskModal, setShowHighRiskModal] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isAiThinking, setIsAiThinking] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+
+  useEffect(() => {
+    if (analysisId) {
+      const fetchSavedAnalysis = async () => {
+        setIsInitialLoading(true);
+        const path = `analyses/${analysisId}`;
+        try {
+          const docRef = doc(db, 'analyses', analysisId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setDistance(data.distance);
+            setClassType(data.classType);
+            setDepDelay(data.depDelay);
+            setArrDelay(data.arrDelay);
+            setTravelType(data.travelType);
+            setResult(data.result);
+            setSaveSuccess(true); // Already saved
+            
+            addNotification({
+              title: 'Analysis Loaded',
+              message: 'Successfully loaded saved analysis from your dashboard.',
+              severity: 'low'
+            });
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, path);
+        } finally {
+          setIsInitialLoading(false);
+        }
+      };
+      fetchSavedAnalysis();
+    }
+  }, [analysisId]);
 
   const validateDistance = (val: number) => {
     if (val <= 0) return "Distance must be greater than 0.";
@@ -163,13 +204,29 @@ export default function AnalyzeScenario() {
     }
   };
 
+  if (isInitialLoading) {
+    return (
+      <div className="flex-grow flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-on-surface-variant font-medium animate-pulse">Loading saved analysis...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="flex-grow px-6 lg:px-12 max-w-7xl mx-auto w-full pb-20">
       {/* Header Section */}
       <div className="mb-12 mt-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
+          {analysisId && (
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest mb-4 hover:gap-3 transition-all">
+              <ChevronLeft className="w-3 h-3" /> Back to Dashboard
+            </Link>
+          )}
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-4 font-headline">
-            Analyze Your Travel Scenario
+            {analysisId ? 'Saved Analysis Details' : 'Analyze Your Travel Scenario'}
           </h1>
           <p className="text-on-surface-variant max-w-2xl text-lg">
             Input your flight details to predict passenger satisfaction and identify potential friction points in the journey.
@@ -614,5 +671,17 @@ export default function AnalyzeScenario() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AnalyzeScenario() {
+  return (
+    <Suspense fallback={
+      <div className="flex-grow flex items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
+    }>
+      <AnalyzeContent />
+    </Suspense>
   );
 }

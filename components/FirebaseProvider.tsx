@@ -16,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -25,14 +26,18 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       if (currentUser) {
         // Sync user profile to Firestore
         const userRef = doc(db, 'users', currentUser.uid);
-        await setDoc(userRef, {
-          uid: currentUser.uid,
-          displayName: currentUser.displayName,
-          email: currentUser.email,
-          photoURL: currentUser.photoURL,
-          lastLogin: serverTimestamp(),
-          createdAt: serverTimestamp(), // Firestore will ignore if already exists with setDoc(..., { merge: true })
-        }, { merge: true });
+        try {
+          await setDoc(userRef, {
+            uid: currentUser.uid,
+            displayName: currentUser.displayName,
+            email: currentUser.email,
+            photoURL: currentUser.photoURL,
+            lastLogin: serverTimestamp(),
+            createdAt: serverTimestamp(), // Firestore will ignore if already exists with setDoc(..., { merge: true })
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error syncing user profile:', error);
+        }
       }
     });
 
@@ -40,10 +45,18 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async () => {
+    if (signingIn) return;
+    setSigningIn(true);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error('Sign-in error:', error);
+    } catch (error: any) {
+      if (error.code === 'auth/cancelled-popup-request') {
+        console.warn('Sign-in popup was already open or request was cancelled.');
+      } else {
+        console.error('Sign-in error:', error);
+      }
+    } finally {
+      setSigningIn(false);
     }
   };
 
