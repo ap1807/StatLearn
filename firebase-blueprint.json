@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "SavedAnalysis": {
+      "title": "SavedAnalysis",
+      "description": "A saved flight analysis result",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "distance": { "type": "number" },
+        "classType": { "type": "string" },
+        "depDelay": { "type": "number" },
+        "arrDelay": { "type": "number" },
+        "travelType": { "type": "string" },
+        "result": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "distance", "classType", "result", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile documents"
+    },
+    "/analyses/{analysisId}": {
+      "schema": "SavedAnalysis",
+      "description": "Saved analysis results"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --color-primary: #006591;
+  --color-primary-container: #8ed0ff;
+  --color-on-primary-container: #005981;
+  --color-tertiary: #006686;
+  --color-tertiary-container: #7dd3fc;
+  --color-surface: #f7f9fb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container: #eceef0;
+  --color-surface-container-high: #e6e8ea;
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #3f484e;
+  --color-outline: #6f787e;
+  --color-outline-variant: #bec8ce;
+  --color-error: #ba1a1a;
+
+  --font-headline: var(--font-plus-jakarta), sans-serif;
+  --font-body: var(--font-manrope), sans-serif;
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-surface-container-lowest/70 backdrop-blur-[20px] border border-outline-variant/20;
+  }
+  .glass-elevated {
+    @apply bg-surface-container-lowest/90 backdrop-blur-[24px] border border-tertiary-container/30 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.05)];
+  }
+  .sky-gradient {
+    @apply bg-gradient-to-br from-primary to-tertiary-container;
+  }
+  .text-glow {
+    text-shadow: 0 0 20px rgba(125, 211, 252, 0.4);
+  }
+  .animate-pulse-border {
+    animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(186, 26, 26, 0);
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+body {
+  @apply bg-surface text-on-surface font-body antialiased selection:bg-tertiary-container/30;
+}

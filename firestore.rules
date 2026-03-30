@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - The user's unique ID
+    //   - displayName: string (optional) - The user's display name
+    //   - email: string (required) - The user's email address
+    //   - photoURL: string (optional) - The user's profile photo URL
+    //   - createdAt: timestamp (required) - When the profile was created
+    //   - lastLogin: timestamp (optional) - When the user last logged in
+    //
+    // Collection: analyses
+    // Document ID: {analysisId}
+    // Fields:
+    //   - uid: string (required) - The ID of the user who saved the analysis
+    //   - distance: number (required) - Flight distance
+    //   - classType: string (required) - Travel class (Economy, Business, First Class)
+    //   - depDelay: number (required) - Departure delay in minutes
+    //   - arrDelay: number (required) - Arrival delay in minutes
+    //   - travelType: string (required) - Travel type (Business, Personal)
+    //   - result: map (required) - The analysis result object
+    //   - createdAt: timestamp (required) - When the analysis was saved
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "patiladi430@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             (!('photoURL' in data) || isValidUrl(data.photoURL)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100));
+    }
+
+    function isValidAnalysis(data) {
+      return hasRequiredFields(['uid', 'distance', 'classType', 'result', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.distance is number && data.distance > 0 &&
+             data.classType in ['Economy', 'Business', 'First Class'] &&
+             data.travelType in ['Business', 'Personal'] &&
+             data.result is map &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (!('role' in request.resource.data) || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /analyses/{analysisId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidAnalysis(request.resource.data);
+      allow update: if isDocOwner() && isValidAnalysis(request.resource.data) && isAdmin(); // Only admins can update analyses for now
+      allow delete: if isDocOwner() || isAdmin();
+    }
+  }
+}
