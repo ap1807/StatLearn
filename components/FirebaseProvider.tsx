@@ -52,8 +52,12 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       if (error.code === 'auth/cancelled-popup-request') {
         console.warn('Sign-in popup was already open or request was cancelled.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        console.error('Sign-in error: Unauthorized domain. Please add the current domain to the authorized domains list in the Firebase Console (Authentication > Settings > Authorized domains). Current domain:', window.location.hostname);
+        alert(`Sign-in error: Unauthorized domain (${window.location.hostname}). Please add this domain to your Firebase Console authorized domains.`);
       } else {
-        console.error('Sign-in error:', error);
+        console.error('Sign-in error:', error.code, error.message);
+        alert(`Sign-in error: ${error.message}`);
       }
     } finally {
       setSigningIn(false);
